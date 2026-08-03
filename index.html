@@ -2,176 +2,428 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>実験刺激ランダム割り当て</title>
+<title>母音実験 ランダム割り当てツール</title>
+
 <style>
 body{
     font-family:sans-serif;
-    max-width:900px;
+    max-width:1200px;
     margin:auto;
     padding:20px;
+    background:#f5f5f5;
 }
+
+h1{
+    margin-top:0;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:20px;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
+}
+
 input{
-    width:80px;
+    width:120px;
 }
+
+table{
+    border-collapse:collapse;
+    width:100%;
+    margin-top:10px;
+}
+
+th,td{
+    border:1px solid #999;
+    padding:4px;
+    text-align:center;
+}
+
 button{
-    margin:10px 0;
-    padding:8px 16px;
+    padding:10px 18px;
+    margin:5px;
+    cursor:pointer;
 }
-pre{
-    background:#eee;
-    padding:10px;
-    white-space:pre-wrap;
+
+#stimuliTable{
+    max-height:400px;
+    overflow:auto;
+}
+
+#assignTable{
+    max-height:500px;
+    overflow:auto;
 }
 </style>
+
 </head>
+
 <body>
 
-<h2>母音実験 割り当てツール</h2>
+<h1>母音実験 割り当てツール</h1>
 
-被験者数
-<input id="subjects" value="15"><br><br>
+<div class="card">
 
-一人あたり刺激数
-<input id="perSubject" value="30"><br><br>
+<h2>設定</h2>
 
-変化量（カンマ区切り）
-
-<br>
-<input id="levels" style="width:400px"
-value="0,+100,-100,+200,-200,+300,-300,+400,-400">
+<label>被験者数</label>
+<input id="subjectCount" value="15">
 
 <br><br>
 
-<button onclick="generate()">生成</button>
+<label>一人あたり刺激数</label>
+<input id="stimuliPerSubject" value="30">
 
-<pre id="log"></pre>
+<br><br>
+
+<label>変化量(カンマ区切り)</label><br>
+
+<input
+id="deltaList"
+style="width:600px"
+value="+100,-100,+200,-200,+300,-300,+400,-400">
+
+<br><br>
+
+<button onclick="generate()">
+生成
+</button>
+
+<button onclick="downloadStimuli()">
+刺激一覧CSV
+</button>
+
+<button onclick="downloadAssign()">
+割り当てCSV
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>刺激一覧</h2>
+
+<div id="stimuliTable"></div>
+
+</div>
+
+<div class="card">
+
+<h2>被験者ごとの割り当て</h2>
+
+<div id="assignTable"></div>
+
+</div>
 
 <script>
 
-function shuffle(a){
-    for(let i=a.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [a[i],a[j]]=[a[j],a[i]];
-    }
+const vowels=[
+"a",
+"i",
+"u",
+"e",
+"o"
+];
+
+const formants=[
+"Original",
+"F0",
+"F1",
+"F2",
+"F3",
+"F4"
+];
+
+const names=[
+"い",
+"ろ",
+"は",
+"に",
+"ほ",
+"へ",
+"と",
+"ち",
+"り",
+"ぬ",
+"る",
+"を",
+"わ",
+"か",
+"よ",
+"た",
+"れ",
+"そ",
+"つ",
+"ね",
+"な",
+"ら",
+"む",
+"う",
+"ゐ",
+"の",
+"お",
+"く",
+"や",
+"ま",
+"け",
+"ふ",
+"こ",
+"え",
+"て",
+"あ",
+"さ",
+"き",
+"ゆ",
+"め",
+"み",
+"し",
+"ゑ",
+"ひ",
+"も",
+"せ",
+"す"
+];
+
+let stimuli=[];
+let assignments=[];
+
+function pad(id){
+    return String(id).padStart(3,"0");
 }
 
-function download(name,text){
-    const blob=new Blob([text],{type:"text/csv"});
-    const url=URL.createObjectURL(blob);
+function shuffle(array){
 
-    const a=document.createElement("a");
-    a.href=url;
-    a.download=name;
-    a.click();
+    for(let i=array.length-1;i>0;i--){
 
-    URL.revokeObjectURL(url);
+        const j=Math.floor(Math.random()*(i+1));
+
+        [array[i],array[j]]=
+        [array[j],array[i]];
+
+    }
+
 }
 
 function generate(){
 
-    const vowels=["a","i","u","e","o"];
-    const formants=["Original","F0","F1","F2","F3","F4"];
+stimuli=[];
+assignments=[];
 
-    const levels=document.getElementById("levels")
-        .value.split(",")
-        .map(x=>x.trim());
+const deltas=document
+.getElementById("deltaList")
+.value
+.split(",")
+.map(v=>v.trim());
 
-    const subjects=parseInt(document.getElementById("subjects").value);
-    const perSubject=parseInt(document.getElementById("perSubject").value);
+let id=1;
 
-    let stimuli=[];
+for(const vowel of vowels){
 
-    let id=1;
+    stimuli.push({
 
-    for(const v of vowels){
+        id:pad(id++),
 
-        for(const f of formants){
+        vowel,
 
-            if(f=="Original"){
+        formant:"Original",
 
-                stimuli.push({
-                    id:id++,
-                    vowel:v,
-                    formant:"Original",
-                    delta:"0"
-                });
+        delta:"0"
 
-            }else{
+    });
 
-                for(const d of levels){
+    for(const f of formants){
 
-                    if(d=="0") continue;
+        if(f==="Original") continue;
 
-                    stimuli.push({
-                        id:id++,
-                        vowel:v,
-                        formant:f,
-                        delta:d
-                    });
+        for(const d of deltas){
 
-                }
+            stimuli.push({
 
-            }
+                id:pad(id++),
 
-        }
+                vowel,
 
-    }
+                formant:f,
 
-    shuffle(stimuli);
+                delta:d
 
-    let assignments=[];
-
-    let index=0;
-
-    for(let s=1;s<=subjects;s++){
-
-        for(let k=0;k<perSubject;k++){
-
-            assignments.push({
-                subject:s,
-                stimulus:stimuli[index%stimuli.length].id
             });
 
-            index++;
+        }
+
+    }
+
+}
+
+shuffle(stimuli);
+
+const subjectCount=parseInt(
+document.getElementById("subjectCount").value
+);
+
+const perSubject=parseInt(
+document.getElementById("stimuliPerSubject").value
+);
+
+let index=0;
+
+for(let i=0;i<subjectCount;i++){
+
+    let person=[];
+
+    for(let j=0;j<perSubject;j++){
+
+        person.push(
+            stimuli[index % stimuli.length]
+        );
+
+        index++;
+
+    }
+
+    assignments.push({
+
+        name:names[i] ?? ("被験者"+(i+1)),
+
+        list:person
+
+    });
+
+}
+
+showStimuli();
+showAssign();
+
+}
+    function showStimuli(){
+
+    let html="<table>";
+
+    html+="<tr>";
+    html+="<th>ID</th>";
+    html+="<th>母音</th>";
+    html+="<th>フォルマント</th>";
+    html+="<th>変化量</th>";
+    html+="</tr>";
+
+    for(const s of stimuli){
+
+        html+="<tr>";
+
+        html+=`<td>${s.id}</td>`;
+        html+=`<td>${s.vowel}</td>`;
+        html+=`<td>${s.formant}</td>`;
+        html+=`<td>${s.delta}</td>`;
+
+        html+="</tr>";
+
+    }
+
+    html+="</table>";
+
+    document.getElementById("stimuliTable").innerHTML=html;
+
+}
+
+function showAssign(){
+
+    let html="<table>";
+
+    html+="<tr>";
+    html+="<th>被験者</th>";
+    html+="<th>刺激ID</th>";
+    html+="<th>母音</th>";
+    html+="<th>フォルマント</th>";
+    html+="<th>変化量</th>";
+    html+="</tr>";
+
+    for(const p of assignments){
+
+        for(const s of p.list){
+
+            html+="<tr>";
+
+            html+=`<td>${p.name}</td>`;
+            html+=`<td>${s.id}</td>`;
+            html+=`<td>${s.vowel}</td>`;
+            html+=`<td>${s.formant}</td>`;
+            html+=`<td>${s.delta}</td>`;
+
+            html+="</tr>";
 
         }
 
     }
 
-    // CSV1
+    html+="</table>";
 
-    let csv1="id,vowel,formant,delta\n";
-
-    for(const x of stimuli){
-
-        csv1+=`${x.id},${x.vowel},${x.formant},${x.delta}\n`;
-
-    }
-
-    // CSV2
-
-    let csv2="subject,stimulus_id\n";
-
-    for(const x of assignments){
-
-        csv2+=`${x.subject},${x.stimulus}\n`;
-
-    }
-
-    download("stimuli.csv",csv1);
-    download("assignment.csv",csv2);
-
-    document.getElementById("log").textContent=
-`刺激数 : ${stimuli.length}
-割り当て数 : ${assignments.length}
-
-stimuli.csv
-assignment.csv
-をダウンロードしました。`;
+    document.getElementById("assignTable").innerHTML=html;
 
 }
+
+function download(filename,text){
+
+    const blob=new Blob(
+        [text],
+        {type:"text/csv;charset=utf-8;"}
+    );
+
+    const url=URL.createObjectURL(blob);
+
+    const a=document.createElement("a");
+
+    a.href=url;
+
+    a.download=filename;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+}
+
+function downloadStimuli(){
+
+    let csv="id,vowel,formant,delta\n";
+
+    for(const s of stimuli){
+
+        csv+=`${s.id},${s.vowel},${s.formant},${s.delta}\n`;
+
+    }
+
+    download("stimuli.csv",csv);
+
+}
+
+function downloadAssign(){
+
+    let csv="subject,id,vowel,formant,delta\n";
+
+    for(const p of assignments){
+
+        for(const s of p.list){
+
+            csv+=`${p.name},${s.id},${s.vowel},${s.formant},${s.delta}\n`;
+
+        }
+
+    }
+
+    download("assignment.csv",csv);
+
+}
+
+generate();
 
 </script>
 
 </body>
+
 </html>
