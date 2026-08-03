@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>実験刺激ランダム割り当て</title>
+<style>
+body{
+    font-family:sans-serif;
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+}
+input{
+    width:80px;
+}
+button{
+    margin:10px 0;
+    padding:8px 16px;
+}
+pre{
+    background:#eee;
+    padding:10px;
+    white-space:pre-wrap;
+}
+</style>
+</head>
+<body>
+
+<h2>母音実験 割り当てツール</h2>
+
+被験者数
+<input id="subjects" value="15"><br><br>
+
+一人あたり刺激数
+<input id="perSubject" value="30"><br><br>
+
+変化量（カンマ区切り）
+
+<br>
+<input id="levels" style="width:400px"
+value="0,+100,-100,+200,-200,+300,-300,+400,-400">
+
+<br><br>
+
+<button onclick="generate()">生成</button>
+
+<pre id="log"></pre>
+
+<script>
+
+function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+    }
+}
+
+function download(name,text){
+    const blob=new Blob([text],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=name;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function generate(){
+
+    const vowels=["a","i","u","e","o"];
+    const formants=["Original","F0","F1","F2","F3","F4"];
+
+    const levels=document.getElementById("levels")
+        .value.split(",")
+        .map(x=>x.trim());
+
+    const subjects=parseInt(document.getElementById("subjects").value);
+    const perSubject=parseInt(document.getElementById("perSubject").value);
+
+    let stimuli=[];
+
+    let id=1;
+
+    for(const v of vowels){
+
+        for(const f of formants){
+
+            if(f=="Original"){
+
+                stimuli.push({
+                    id:id++,
+                    vowel:v,
+                    formant:"Original",
+                    delta:"0"
+                });
+
+            }else{
+
+                for(const d of levels){
+
+                    if(d=="0") continue;
+
+                    stimuli.push({
+                        id:id++,
+                        vowel:v,
+                        formant:f,
+                        delta:d
+                    });
+
+                }
+
+            }
+
+        }
+
+    }
+
+    shuffle(stimuli);
+
+    let assignments=[];
+
+    let index=0;
+
+    for(let s=1;s<=subjects;s++){
+
+        for(let k=0;k<perSubject;k++){
+
+            assignments.push({
+                subject:s,
+                stimulus:stimuli[index%stimuli.length].id
+            });
+
+            index++;
+
+        }
+
+    }
+
+    // CSV1
+
+    let csv1="id,vowel,formant,delta\n";
+
+    for(const x of stimuli){
+
+        csv1+=`${x.id},${x.vowel},${x.formant},${x.delta}\n`;
+
+    }
+
+    // CSV2
+
+    let csv2="subject,stimulus_id\n";
+
+    for(const x of assignments){
+
+        csv2+=`${x.subject},${x.stimulus}\n`;
+
+    }
+
+    download("stimuli.csv",csv1);
+    download("assignment.csv",csv2);
+
+    document.getElementById("log").textContent=
+`刺激数 : ${stimuli.length}
+割り当て数 : ${assignments.length}
+
+stimuli.csv
+assignment.csv
+をダウンロードしました。`;
+
+}
+
+</script>
+
+</body>
+</html>
