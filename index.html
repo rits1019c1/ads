@@ -2,59 +2,78 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>母音実験 ランダム割り当てツール</title>
 
 <style>
 body{
-    font-family:sans-serif;
-    max-width:1200px;
-    margin:auto;
-    padding:20px;
-    background:#f5f5f5;
+    font-family:"Yu Gothic UI",sans-serif;
+    background:#f5f7fb;
+    margin:20px;
 }
 
 h1{
-    margin-top:0;
+    color:#1d4ed8;
 }
 
 .card{
     background:white;
-    padding:15px;
-    border-radius:10px;
+    border-radius:12px;
+    padding:18px;
     margin-bottom:20px;
-    box-shadow:0 2px 5px rgba(0,0,0,.15);
+    box-shadow:0 3px 8px rgba(0,0,0,.15);
+}
+
+label{
+    display:inline-block;
+    width:170px;
+    margin:5px 0;
 }
 
 input{
-    width:120px;
-}
-
-table{
-    border-collapse:collapse;
-    width:100%;
-    margin-top:10px;
-}
-
-th,td{
-    border:1px solid #999;
-    padding:4px;
-    text-align:center;
+    padding:6px;
+    width:280px;
 }
 
 button{
     padding:10px 18px;
     margin:5px;
     cursor:pointer;
+    border:none;
+    border-radius:8px;
+    background:#2563eb;
+    color:white;
+    font-size:15px;
 }
 
-#stimuliTable{
-    max-height:400px;
-    overflow:auto;
+button:hover{
+    background:#1d4ed8;
 }
 
-#assignTable{
-    max-height:500px;
-    overflow:auto;
+table{
+    border-collapse:collapse;
+    width:100%;
+    margin-top:15px;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
+
+th{
+    background:#2563eb;
+    color:white;
+}
+
+#assignmentTable td{
+    font-size:14px;
+}
+
+.small{
+    color:#666;
+    font-size:13px;
 }
 </style>
 
@@ -62,42 +81,33 @@ button{
 
 <body>
 
-<h1>母音実験 割り当てツール</h1>
+<h1>母音実験 ランダム割り当てツール</h1>
 
 <div class="card">
 
-<h2>設定</h2>
-
 <label>被験者数</label>
-<input id="subjectCount" value="15">
+<input id="subjectCount" type="number" value="15"><br>
 
-<br><br>
+<label>一人当たり刺激数</label>
+<input id="stimPerPerson" type="number" value="30"><br>
 
-<label>一人あたり刺激数</label>
-<input id="stimuliPerSubject" value="30">
+<label>母音</label>
+<input id="vowels" value="a,i,u,e,o"><br>
 
-<br><br>
+<label>フォルマント</label>
+<input id="formants" value="Original,F0,F1,F2,F3,F4"><br>
 
-<label>変化量(カンマ区切り)</label><br>
+<label>変化量</label>
+<input id="deltas"
+value="+100,-100,+200,-200,+300,-300,+400,-400"><br>
 
-<input
-id="deltaList"
-style="width:600px"
-value="+100,-100,+200,-200,+300,-300,+400,-400">
+<p class="small">
+Originalは自動で1種類だけ作成されます。
+</p>
 
-<br><br>
-
-<button onclick="generate()">
-生成
-</button>
-
-<button onclick="downloadStimuli()">
-刺激一覧CSV
-</button>
-
-<button onclick="downloadAssign()">
-割り当てCSV
-</button>
+<button onclick="generate()">生成</button>
+<button onclick="downloadStimuli()">刺激一覧CSV</button>
+<button onclick="downloadAssignment()">割り当てCSV</button>
 
 </div>
 
@@ -105,261 +115,274 @@ value="+100,-100,+200,-200,+300,-300,+400,-400">
 
 <h2>刺激一覧</h2>
 
-<div id="stimuliTable"></div>
+<table id="stimuliTable">
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>母音</th>
+<th>フォルマント</th>
+<th>変化量</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+</tbody>
+
+</table>
 
 </div>
 
 <div class="card">
 
-<h2>被験者ごとの割り当て</h2>
+<h2>被験者への割り当て</h2>
 
-<div id="assignTable"></div>
+<table id="assignmentTable">
+
+<thead>
+
+<tr>
+<th>被験者</th>
+<th>刺激ID一覧</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+</tbody>
+
+</table>
 
 </div>
 
 <script>
 
-const vowels=[
-"a",
-"i",
-"u",
-"e",
-"o"
-];
-
-const formants=[
-"Original",
-"F0",
-"F1",
-"F2",
-"F3",
-"F4"
-];
-
-const names=[
-"い",
-"ろ",
-"は",
-"に",
-"ほ",
-"へ",
-"と",
-"ち",
-"り",
-"ぬ",
-"る",
-"を",
-"わ",
-"か",
-"よ",
-"た",
-"れ",
-"そ",
-"つ",
-"ね",
-"な",
-"ら",
-"む",
-"う",
-"ゐ",
-"の",
-"お",
-"く",
-"や",
-"ま",
-"け",
-"ふ",
-"こ",
-"え",
-"て",
-"あ",
-"さ",
-"き",
-"ゆ",
-"め",
-"み",
-"し",
-"ゑ",
-"ひ",
-"も",
-"せ",
-"す"
+const kanaNames=[
+"い","ろ","は","に","ほ","へ","と",
+"ち","り","ぬ","る","を","わ","か",
+"よ","た","れ","そ","つ","ね","な",
+"ら","む","う","ゐ","の","お","く",
+"や","ま","け","ふ","こ","え","て",
+"あ","さ","き","ゆ","め","み","し",
+"ゑ","ひ","も","せ","す"
 ];
 
 let stimuli=[];
 let assignments=[];
 
 function pad(id){
-    return String(id).padStart(3,"0");
+
+    return id.toString().padStart(3,"0");
+
 }
 
 function shuffle(array){
 
     for(let i=array.length-1;i>0;i--){
 
-        const j=Math.floor(Math.random()*(i+1));
+        let j=Math.floor(Math.random()*(i+1));
 
-        [array[i],array[j]]=
-        [array[j],array[i]];
+        [array[i],array[j]]=[array[j],array[i]];
 
     }
+
+}
+
+function kanaName(index){
+
+    if(index<kanaNames.length){
+
+        return kanaNames[index];
+
+    }
+
+    let n=Math.floor(index/kanaNames.length)+1;
+
+    return kanaNames[index%kanaNames.length]+n;
 
 }
 
 function generate(){
 
-stimuli=[];
-assignments=[];
+    stimuli=[];
+    assignments=[];
 
-const deltas=document
-.getElementById("deltaList")
-.value
-.split(",")
-.map(v=>v.trim());
+    let vowels=document.getElementById("vowels")
+        .value.split(",")
+        .map(v=>v.trim());
 
-let id=1;
+    let formants=document.getElementById("formants")
+        .value.split(",")
+        .map(v=>v.trim());
 
-for(const vowel of vowels){
+    let deltas=document.getElementById("deltas")
+        .value.split(",")
+        .map(v=>v.trim());
 
-    stimuli.push({
+    let id=1;
 
-        id:pad(id++),
+    for(let vowel of vowels){
 
-        vowel,
+        stimuli.push({
 
-        formant:"Original",
+            id:pad(id++),
 
-        delta:"0"
+            vowel:vowel,
 
-    });
+            formant:"Original",
 
-    for(const f of formants){
+            delta:"0"
 
-        if(f==="Original") continue;
+        });
 
-        for(const d of deltas){
+        for(let f of formants){
 
-            stimuli.push({
+            if(f==="Original") continue;
 
-                id:pad(id++),
+            for(let d of deltas){
 
-                vowel,
+                stimuli.push({
 
-                formant:f,
+                    id:pad(id++),
 
-                delta:d
+                    vowel:vowel,
 
-            });
+                    formant:f,
 
-        }
+                    delta:d
 
-    }
+                });
 
-}
-
-shuffle(stimuli);
-
-const subjectCount=parseInt(
-document.getElementById("subjectCount").value
-);
-
-const perSubject=parseInt(
-document.getElementById("stimuliPerSubject").value
-);
-
-let index=0;
-
-for(let i=0;i<subjectCount;i++){
-
-    let person=[];
-
-    for(let j=0;j<perSubject;j++){
-
-        person.push(
-            stimuli[index % stimuli.length]
-        );
-
-        index++;
-
-    }
-
-    assignments.push({
-
-        name:names[i] ?? ("被験者"+(i+1)),
-
-        list:person
-
-    });
-
-}
-
-showStimuli();
-showAssign();
-
-}
-    function showStimuli(){
-
-    let html="<table>";
-
-    html+="<tr>";
-    html+="<th>ID</th>";
-    html+="<th>母音</th>";
-    html+="<th>フォルマント</th>";
-    html+="<th>変化量</th>";
-    html+="</tr>";
-
-    for(const s of stimuli){
-
-        html+="<tr>";
-
-        html+=`<td>${s.id}</td>`;
-        html+=`<td>${s.vowel}</td>`;
-        html+=`<td>${s.formant}</td>`;
-        html+=`<td>${s.delta}</td>`;
-
-        html+="</tr>";
-
-    }
-
-    html+="</table>";
-
-    document.getElementById("stimuliTable").innerHTML=html;
-
-}
-
-function showAssign(){
-
-    let html="<table>";
-
-    html+="<tr>";
-    html+="<th>被験者</th>";
-    html+="<th>刺激ID</th>";
-    html+="<th>母音</th>";
-    html+="<th>フォルマント</th>";
-    html+="<th>変化量</th>";
-    html+="</tr>";
-
-    for(const p of assignments){
-
-        for(const s of p.list){
-
-            html+="<tr>";
-
-            html+=`<td>${p.name}</td>`;
-            html+=`<td>${s.id}</td>`;
-            html+=`<td>${s.vowel}</td>`;
-            html+=`<td>${s.formant}</td>`;
-            html+=`<td>${s.delta}</td>`;
-
-            html+="</tr>";
+            }
 
         }
 
     }
 
-    html+="</table>";
+    shuffle(stimuli);
 
-    document.getElementById("assignTable").innerHTML=html;
+    // ===== この続きは後半 =====
+        // ===== 被験者へ均等に割り当て =====
+
+    let subjectCount=parseInt(
+        document.getElementById("subjectCount").value
+    );
+
+    let stimPerPerson=parseInt(
+        document.getElementById("stimPerPerson").value
+    );
+
+    let index=0;
+
+    for(let s=0;s<subjectCount;s++){
+
+        let ids=[];
+
+        for(let i=0;i<stimPerPerson;i++){
+
+            ids.push(stimuli[index % stimuli.length].id);
+
+            index++;
+
+        }
+
+        assignments.push({
+
+            subject:"被験者"+kanaName(s),
+
+            ids:ids
+
+        });
+
+    }
+
+    drawStimuli();
+
+    drawAssignments();
+
+}
+
+function drawStimuli(){
+
+    const tbody=document.querySelector(
+        "#stimuliTable tbody"
+    );
+
+    tbody.innerHTML="";
+
+    for(let s of stimuli){
+
+        let tr=document.createElement("tr");
+
+        tr.innerHTML=`
+        <td>${s.id}</td>
+        <td>${s.vowel}</td>
+        <td>${s.formant}</td>
+        <td>${s.delta}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+    }
+
+}
+
+function drawAssignments(){
+
+    const tbody=document.querySelector(
+        "#assignmentTable tbody"
+    );
+
+    tbody.innerHTML="";
+
+    for(let a of assignments){
+
+        let tr=document.createElement("tr");
+
+        tr.innerHTML=`
+        <td>${a.subject}</td>
+        <td>${a.ids.join(", ")}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+    }
+
+}
+
+function makeStimuliCSV(){
+
+    let csv="ID,母音,フォルマント,変化量\n";
+
+    for(let s of stimuli){
+
+        csv+=`${s.id},${s.vowel},${s.formant},${s.delta}\n`;
+
+    }
+
+    return csv;
+
+}
+
+function makeAssignmentCSV(){
+
+    let csv="被験者,刺激ID\n";
+
+    for(let a of assignments){
+
+        for(let id of a.ids){
+
+            csv+=`${a.subject},${id}\n`;
+
+        }
+
+    }
+
+    return csv;
 
 }
 
@@ -384,46 +407,52 @@ function download(filename,text){
 
     document.body.removeChild(a);
 
-    URL.revokeObjectURL(url);
+    setTimeout(()=>{
+
+        URL.revokeObjectURL(url);
+
+    },100);
 
 }
 
 function downloadStimuli(){
 
-    let csv="id,vowel,formant,delta\n";
+    if(stimuli.length===0){
 
-    for(const s of stimuli){
+        alert("先に生成してください");
 
-        csv+=`${s.id},${s.vowel},${s.formant},${s.delta}\n`;
-
-    }
-
-    download("stimuli.csv",csv);
-
-}
-
-function downloadAssign(){
-
-    let csv="subject,id,vowel,formant,delta\n";
-
-    for(const p of assignments){
-
-        for(const s of p.list){
-
-            csv+=`${p.name},${s.id},${s.vowel},${s.formant},${s.delta}\n`;
-
-        }
+        return;
 
     }
 
-    download("assignment.csv",csv);
+    download(
+        "stimuli.csv",
+        makeStimuliCSV()
+    );
 
 }
 
+function downloadAssignment(){
+
+    if(assignments.length===0){
+
+        alert("先に生成してください");
+
+        return;
+
+    }
+
+    download(
+        "assignment.csv",
+        makeAssignmentCSV()
+    );
+
+}
+
+// 初回生成
 generate();
 
 </script>
 
 </body>
-
 </html>
