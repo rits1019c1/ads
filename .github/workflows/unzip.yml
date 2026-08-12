@@ -3,7 +3,7 @@ name: Unzip voices
 on:
   push:
     paths:
-      - "/vowel_outputs.zip"
+      - "vowel_outputs.zip"
 
 jobs:
   unzip:
