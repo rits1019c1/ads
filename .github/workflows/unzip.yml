@@ -3,7 +3,7 @@ name: Unzip voices
 on:
   push:
     paths:
-      - "./voices.zip"
+      - "./vowel_outputs.zip"
 
 jobs:
   unzip:
@@ -15,7 +15,7 @@ jobs:
       - name: Unzip
         run: |
           mkdir -p audio/voices
-          unzip -o audio/voices.zip -d audio/voices
+          unzip -o vowel_outputs.zip -d audio/voices
 
       - name: Commit extracted files
         run: |
